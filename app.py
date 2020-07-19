@@ -10,6 +10,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import plot_confusion_matrix, plot_roc_curve, plot_precision_recall_curve
 from sklearn.metrics import precision_score, recall_score
+from sklearn.tree import DecisionTreeClassifier as DecisionTreeClassifier_
+from sklearn import tree
 
 
 @st.cache(persist=True)
@@ -49,12 +51,33 @@ class LogisticClassifier(Classifier):
         return model, data
 
 
+class DecisionTreeClassifier(Classifier):
+
+    def classify(self):
+        max_depth = st.sidebar.number_input("The maximum depth of the tree", 1, 20, step=1, key='max_depth')
+        max_features = st.sidebar.radio("Max features", ("auto", "sqrt", "log2"), key='max_features')
+        min_samples_leaf = st.sidebar.number_input("The minimum number of samples to be at a leaf node",
+                                                   0.0, 0.5, step=0.01, key='min_samples_leaf')
+        min_samples_split = st.sidebar.number_input("The minimum number of samples to split an internal node",
+                                                    1, 20, step=1, key='min_samples_split')
+
+        model = DecisionTreeClassifier_(max_depth=max_depth,
+                                        max_features=max_features,
+                                        min_samples_leaf=min_samples_leaf,
+                                        min_samples_split=min_samples_split
+                                        )
+        data = pd.DataFrame([max_depth, max_features, min_samples_leaf, min_samples_split],
+                            ['max_depth', 'max_features', 'min_samples_leaf', 'min_samples_split'])
+
+        return model, data
+
+
 class RandomForestClassifier(Classifier):
 
     def classify(self, n_jobs=-1):
         n_estimators = st.sidebar.number_input("The number of trees in the forest", 100, 5000, step=10,
                                                key='n_estimators')
-        max_depth = st.sidebar.number_input("The maximum depth of the tree", 1, 20, step=1, key='n_estimators')
+        max_depth = st.sidebar.number_input("The maximum depth of the tree", 1, 20, step=1, key='max_depth')
         bootstrap = st.sidebar.radio("Bootstrap samples when building trees", ('True', 'False'), key='bootstrap')
         model = RandomForestClassifier_(n_estimators=n_estimators,
                                         max_depth=max_depth,
@@ -109,6 +132,7 @@ class ClassifierFactory:
             "Random Forest": RandomForestClassifier,
             "Logistic Regression": LogisticClassifier,
             "Support Vector Machine (SVM)": SVMClassifier,
+            "Decision Tree Classifier": DecisionTreeClassifier,
         }
         return switcher.get(classifier, ValueError)
 
@@ -119,8 +143,8 @@ def main():
     st.markdown("Are your mushrooms edible or poisonous? 🍄")
     st.sidebar.markdown("Are your mushrooms edible or poisonous? 🍄")
     st.sidebar.subheader("Choose Classifier")
-    classifiers = ("Support Vector Machine (SVM)", "Logistic Regression", "Random Forest")
 
+    classifiers = ("Support Vector Machine (SVM)", "Logistic Regression", "Random Forest", "Decision Tree Classifier")
     classifier = st.sidebar.selectbox("Classifier",
                                       classifiers)
 
@@ -139,7 +163,6 @@ def main():
         st.table(data)
         accuracy = model.score(factory.x_test, factory.y_test)
         y_pred = model.predict(factory.x_test)
-
         st.write("Accuracy: ", accuracy.round(2))
         st.write("Precision: ", precision_score(factory.y_test, y_pred, labels=factory.class_names).round(2))
         st.write("Recall: ", recall_score(factory.y_test, y_pred, labels=factory.class_names).round(2))
